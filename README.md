@@ -1,109 +1,177 @@
-# emby_watched_jellyseerr_cleaner
+# Emby Watched Jellyseerr Cleaner
 
-[![python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)  [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+Un script Python pour analyser et nettoyer automatiquement votre bibliothèque multimédia en comparant les demandes Jellyseerr avec le contenu regardé sur Emby.
 
-## Présentation
+## 🎯 Fonctionnalités
 
-**emby_watched_jellyseerr_cleaner** est un utilitaire Python destiné aux administrateurs de médiathèques auto-hébergées. Il croise les demandes Jellyseerr avec l’historique de visionnage Emby afin d’identifier les films et séries mal notés qui n’ont plus d’intérêt pour vos utilisateurs. Il peut ensuite – en simulation ou en mode actif – supprimer ces contenus via Radarr/Sonarr pour libérer de l’espace disque.
+- **Analyse intelligente** : Compare les demandes Jellyseerr avec le contenu regardé sur Emby
+- **Filtrage avancé** : Identifie le contenu mal noté (< 6.5/10) et ancien (> 2 mois)
+- **Nettoyage automatique** : Supprime le contenu indésirable de Radarr et Sonarr
+- **Rapports détaillés** : Génère des statistiques complètes avec émojis
+- **Mode simulation** : Testez avant de supprimer avec le mode dry-run
+- **Support multi-services** : Jellyseerr, Emby, Radarr, Sonarr
 
-## Fonctionnalités principales
+## 📋 Prérequis
 
-* Association automatique des comptes Jellyseerr ↔︎ Emby (nom, alias, normalisation).
-* Analyse conjointe des demandes Jellyseerr et du statut « vu » Emby.
-* Calcul d’une note moyenne (communauté + critique) et filtrage configurable (< 6.5/10 et demande > 60 jours par défaut).
-* Génération d’un rapport détaillé en console avec emojis et statistiques.
-* Suppression optionnelle des titres correspondants dans Radarr/Sonarr (fichiers + import-exclusion).
-* Mode _dry-run_ sécurisé pour valider le résultat avant toute action destructive.
+- Python 3.7+
+- Accès aux APIs de vos services
+- Modules Python requis :
+  ```bash
+  pip install requests unicodedata
+  ```
 
-## Prérequis
+## ⚙️ Configuration
 
-* Python ≥ 3.9 
-* Un accès API fonctionnel aux services suivants :
-  * Jellyseerr ≥ 1.6
-  * Emby Server ≥ 4.9
-  * (optionnel) Radarr / Sonarr avec API v3 activée
-* Bibliothèques Python : `requests`, `python-dotenv` (installées automatiquement via `pip`).
+1. **Ouvrez le fichier `emby_watched_jellyseerr_cleaner.py`**
 
-## Installation
+2. **Modifiez la section configuration dans la fonction `main()` :**
 
+```python
+def main():
+    # Configuration - MODIFIEZ CES VALEURS
+    JELLYSEERR_URL = "http://VOTRE_IP:5055"
+    JELLYSEERR_API_KEY = "VOTRE_CLE_API_JELLYSEERR"
+    EMBY_URL = "http://VOTRE_IP:8096"
+    EMBY_API_KEY = "VOTRE_CLE_API_EMBY"
+    
+    # Configuration Radarr et Sonarr (optionnel)
+    RADARR_URL = "http://VOTRE_IP:7878"
+    RADARR_API_KEY = "VOTRE_CLE_API_RADARR"
+    SONARR_URL = "http://VOTRE_IP:8989"
+    SONARR_API_KEY = "VOTRE_CLE_API_SONARR"
+```
+
+### 🔑 Obtenir les clés API
+
+#### Jellyseerr
+1. Connexion → Paramètres → API
+2. Copiez la clé API
+
+#### Emby
+1. Tableau de bord → Avancé → Clés API
+2. Créez une nouvelle clé API
+
+#### Radarr/Sonarr
+1. Paramètres → Général → API Key
+2. Copiez la clé API
+
+## 🚀 Utilisation
+
+### Mode Simulation (Recommandé)
 ```bash
-# 1. Cloner le dépôt
-$ git clone https://github.com/Limoniak/emby_watched_jellyseerr_cleaner.git
-$ cd emby_watched_jellyseerr_cleaner
-
-# 2. Créer un environnement virtuel (recommandé)
-$ python -m venv venv && source venv/bin/activate
-
-# 3. Installer les dépendances
-$ pip install -r requirements.txt
+python emby_watched_jellyseerr_cleaner.py
 ```
 
-## Configuration
+Le script fonctionne en mode simulation par défaut. Il affiche ce qui serait supprimé sans rien supprimer.
 
-Toutes les URLs et clés API sont désormais chargées depuis un fichier **.env** afin d’éviter toute fuite d’information sensible dans le dépôt Git.
-
-1. Copiez le modèle :
-   ```bash
-   cp .env.example .env
-   ```
-2. Éditez **.env** et renseignez vos valeurs :
-   ```ini
-   JELLYSEERR_URL=https://jellyseerr.example.com
-   JELLYSEERR_API_KEY=xxxxxxxxxxxxxxxxx
-   EMBY_URL=https://emby.example.com
-   EMBY_API_KEY=xxxxxxxxxxxxxxxxx
-   RADARR_URL=https://radarr.example.com        # optionnel
-   RADARR_API_KEY=xxxxxxxxxxxxxxxxx             # optionnel
-   SONARR_URL=https://sonarr.example.com        # optionnel
-   SONARR_API_KEY=xxxxxxxxxxxxxxxxx             # optionnel
-   ```
-
-⚠️ Le fichier **.env** est ignoré par Git grâce à l’entrée correspondante dans `.gitignore`.
-
-## Utilisation rapide
-
-```bash
-# Simulation (aucune suppression réelle)
-$ python3 pruner.py --dry-run
-
-# Suppression effective après confirmation
-$ python3 pruner.py --no-dry-run
+### Mode Suppression Réelle
+Modifiez dans le script la ligne :
+```python
+dry_run=True  # Changez en False pour vraiment supprimer
 ```
 
-Arguments courants :
+## 📊 Critères de Filtrage
 
-| Option                | Valeur par défaut | Description                                                |
-|-----------------------|-------------------|------------------------------------------------------------|
-| `--dry-run / --no-dry-run` | `--dry-run`       | Exécute le script en mode lecture seule.                   |
-| `--min-rating`        | `6.5`             | Seuil de note moyenne sous lequel un titre est considéré comme « mal noté ». |
-| `--older-than`        | `60`              | Âge minimum de la demande (en jours) avant d’être éligible. |
-| `--delete-files`      | activé            | Supprimer également les fichiers multimédia sur disk.      |
-| `--add-exclusion`     | désactivé         | Ajoute une exclusion d’import dans Radarr/Sonarr après suppression. |
+Le script identifie le contenu à nettoyer selon ces critères :
 
-## Exemple de sortie
+- **Note moyenne < 6.5/10** (combinaison note communauté + note critique)
+- **Demande ancienne > 2 mois**
+- **Contenu regardé** (confirmé dans Emby)
+
+## 🔍 Correspondance Intelligente
+
+Le script utilise plusieurs méthodes pour associer le contenu :
+
+1. **ID TMDB** (priorité haute)
+2. **ID IMDB** (priorité haute)
+3. **Titre + Année** (priorité moyenne)
+4. **Titre uniquement** (priorité faible)
+
+## 📈 Exemple de Sortie
 
 ```
-👁️  Mode simulation (dry-run)
 🎬📺 Films et Séries mal notés et anciens (< 6.5/10 et > 2 mois)
-====================================================================
- 1. 🎬 **The Bad Movie** (2022) | 📊 4.8/10 ⭐⭐
-    👤 Alice | 📅 13/04/24 → 🎬 18/04/24 (1x) ✅
-...
-📊 3 contenus mal notés et anciens | 🎬 2 films | 📺 1 série
+======================================================================
+
+📉 **Contenu mal noté et ancien :**
+
+ 1. 🎬 **Film Example** (2022) | 👥 4.2/10 ⭐⭐ | 📊 4.2/10 ⭐⭐
+    👤 Jean Dupont | 📅 15/03/24 → 🎬 20/03/24 (1x) ✅
+
+ 2. 📺 **Série Example** (2023) | 👥 5.8/10 ⭐⭐⭐ | 🎭 45% | 📊 5.65/10 ⭐⭐⭐
+    👤 Marie Martin | 📅 10/02/24 → 🎬 12/02/24 (3x) ✅
+
+📊 **2** contenus mal notés et anciens | 🎬 1 films | 📺 1 séries
 ```
 
-## Contribution
+## ⚠️ Sécurité
 
-Les demandes de fusion sont les bienvenues ! Merci de :
+- **Testez toujours en mode simulation** avant la suppression réelle
+- **Sauvegardez vos données** avant utilisation
+- Le script peut supprimer définitivement vos fichiers media
 
-1. Créer une issue pour décrire le bug ou la fonctionnalité souhaitée.
-2. Travailler dans une branche dédiée.
-3. Lancer `flake8` et `pytest` avant tout commit.
+## 🛠️ Paramètres Avancés
 
+### Options de Suppression
+```python
+matcher.generate_user_report(
+    delete_files=True,      # Supprimer les fichiers du disque
+    add_exclusion=False,    # Ajouter à la liste d'exclusion
+    dry_run=True           # Mode simulation
+)
+```
 
-## Remerciements
+### Personnalisation des Seuils
+Modifiez dans la méthode `generate_user_report()` :
+```python
+# Changer le seuil de note (actuellement 6.5)
+if (average_rating < 6.5 and average_rating > 0 and
 
-* [Jellyseerr](https://github.com/fallenbagel/jellyseerr) et sa communauté.
-* [Emby](https://emby.media) pour son API riche.[5]
-* Les projets **Radarr** et **Sonarr** pour l’automatisation média.[20]
-* Le paquet `python-dotenv` pour la gestion sécurisée des variables d’environnement.[28]
+# Changer la durée d'ancienneté (actuellement 2 mois)
+self.is_older_than_two_months(request_date)):
+```
+
+## 🐛 Dépannage
+
+### Erreurs de Connexion
+- Vérifiez que tous vos services sont accessibles
+- Contrôlez les URLs et ports
+- Validez les clés API
+
+### Aucun Contenu Trouvé
+- Vérifiez que les utilisateurs existent dans les deux services
+- Assurez-vous que le contenu a été regardé sur Emby
+- Contrôlez les critères de filtrage
+
+### Problèmes de Correspondance
+- Le script utilise plusieurs méthodes de matching
+- Vérifiez les métadonnées TMDB/IMDB
+- Les titres doivent correspondre entre services
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou soumettre une Pull Request.
+
+## 📝 Licence
+
+Ce projet est sous licence MIT. Voir le fichier LICENSE pour plus de détails.
+
+## ⚡ Statut des Émojis
+
+| Emoji | Signification |
+|-------|---------------|
+| ⏳ | En attente |
+| ✅ | Approuvé/Terminé |
+| 🚫 | Refusé |
+| ⬇️ | En téléchargement |
+| ❓ | Statut inconnu |
+| 🎬 | Film |
+| 📺 | Série TV |
+| ⭐ | Note (1-5 étoiles) |
+| 👥 | Note communauté |
+| 🎭 | Note critique |
+| 📊 | Note moyenne |
+
+---
+
+**⚠️ Attention :** Ce script peut supprimer définitivement vos fichiers media. Utilisez toujours le mode simulation avant une suppression réelle et assurez-vous d'avoir des sauvegardes.
